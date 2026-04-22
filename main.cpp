@@ -275,21 +275,17 @@ public:
         flush_scoreboard();
         print_scoreboard();
 
-        vector<pair<TeamStatus*, string>> unfreeze_order;
-
         while (true) {
             TeamStatus* team = find_team_with_lowest_rank_and_frozen();
             if (!team) break;
 
             string problem = find_smallest_frozen_problem(team);
-            unfreeze_order.push_back({team, problem});
 
-            team->problems[problem].is_frozen = false;
-        }
-
-        for (auto& [team, problem] : unfreeze_order) {
+            // Unfreeze this problem
             ProblemStatus& status = team->problems[problem];
+            status.is_frozen = false;
 
+            // Process submissions after freeze time
             vector<Submission> relevant_submissions;
             for (const auto& sub : team->submissions) {
                 if (sub.problem == problem && sub.time > freeze_time) {
@@ -308,13 +304,29 @@ public:
                 }
             }
 
-            int old_ranking = team->last_flush_ranking;
+            // Store the current state before flushing
+            map<string, int> old_rankings;
+            for (auto* t : team_order) {
+                old_rankings[t->name] = t->last_flush_ranking;
+            }
+
             flush_scoreboard();
             int new_ranking = team->last_flush_ranking;
 
-            if (old_ranking != new_ranking) {
-                cout << team->name << " " << new_ranking << " "
-                     << team->solved_count << " " << team->total_penalty << "\n";
+            if (old_rankings[team->name] != new_ranking) {
+                // Find which team's position this team took
+                string displaced_team_name;
+                for (auto& [name, rank] : old_rankings) {
+                    if (rank == new_ranking && name != team->name) {
+                        displaced_team_name = name;
+                        break;
+                    }
+                }
+
+                if (!displaced_team_name.empty()) {
+                    cout << team->name << " " << displaced_team_name << " "
+                         << team->solved_count << " " << team->total_penalty << "\n";
+                }
             }
         }
 
