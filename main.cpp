@@ -442,11 +442,20 @@ int main() {
 
             if (status_pos != string::npos) {
                 size_t start = status_pos + 7;
-                problem = condition.substr(start);
                 if (prob_pos != string::npos) {
                     size_t and_pos = condition.find(" AND");
-                    if (and_pos != string::npos) {
-                        status = condition.substr(start, and_pos - start);
+                    if (and_pos != string::npos && and_pos < status_pos) {
+                        // PROBLEM=... AND STATUS=...
+                        size_t status_start = status_pos + 7;
+                        status = condition.substr(status_start);
+                    } else if (and_pos != string::npos && and_pos > status_pos) {
+                        // STATUS=... AND PROBLEM=...
+                        size_t status_end = condition.find(" AND", start);
+                        if (status_end == string::npos) {
+                            status = condition.substr(start);
+                        } else {
+                            status = condition.substr(start, status_end - start);
+                        }
                     } else {
                         status = condition.substr(start);
                     }
